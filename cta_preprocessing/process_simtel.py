@@ -1,5 +1,52 @@
 import click
 from parameters import PREPConfig
+import glob
+from pathlib import Path
+import numpy as np 
+from joblib import Parallel, delayed
+from file_processing import process_file, verify_file, read_simtel_mc_information
+from tqdm import tqdm
+import fact.io 
+
+
+
+
+from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.calib import CameraCalibrator
+from ctapipe.image.hillas import hillas_parameters_5, HillasParameterizationError
+from ctapipe.image import leakage
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.reco import HillasReconstructor
+from ctapipe.reco.HillasReconstructor import TooFewTelescopesException
+
+from joblib import Parallel, delayed
+
+import pandas as pd
+import fact.io
+import click
+import pyhessio
+import numpy as np
+from collections import Counter
+from tqdm import tqdm
+import astropy.units as u
+from astropy.coordinates import SkyCoord
+import glob
+import os
+# do some horrible things to silence warnings in ctapipe
+import warnings
+from astropy.utils.exceptions import AstropyDeprecationWarning
+
+
+
+
+
+def output_file_for_input_file(input_file):
+    raw_name = Path(input_file.name)
+    while raw_name.suffixes:
+        raw_name_stem = raw_name.stem
+        raw_name = Path(raw_name_stem)
+    return(input_file.parents[0].joinpath(raw_name.with_suffix('.hdf5')))
+
 
 @click.command()
 @click.argument('input_folder', type=click.Path(dir_okay = True, file_okay=False))
@@ -7,19 +54,76 @@ from parameters import PREPConfig
 @click.argument('config_file', type=click.Path(file_okay=True))
 def main(input_folder, output_folder, config_file):
     conf_obj = PREPConfig(config_file)
-    for x in conf_obj.__slots__:
-        if getattr(conf_obj, x) is not None:
-            print('True für:', x)
-            print(getattr(conf_obj, x))
-        else:
-            print('False für:', x)
-    print('Input:', input_folder)
-    print('Output:', output_folder)
 
+
+    ##### Fileendungen anpassen !  In Config hinzufügen ?
+    input_files = [x for x in Path(input_folder).glob(conf_obj.input_pattern)]
+    print(input_files)
+    #print(input_files)
+    output_files = [output_file_for_input_file(x) for x in input_files]
+    print(output_files)
+    #print([output_file_for_input_file(x) for x in input_files])
+    if not conf_obj.overwrite:
+        existing_output = [x.name for x in Path(output_folder).glob('*')]
+        print('existing:', existing_output)
+        input_files = [x for x in input_files if output_file_for_input_file(x) not in existing_output]
+        
+    print(input_files)
+
+
+
+
+    print(conf_obj.n_jobs)
+
+    if conf_obj.n_jobs > 1:
+         chunksize = conf_obj.chunksize
+         n_chunks = (len(input_files) // chunksize) + 1
+         chunks = np.array_split(input_files.as_posix(), n_chunks)
+         print('test')
+         with Parallel(n_jobs=n_jobs, verbose=50) as parallel:
+            for chunk in tqdm(chunks):
+                results = parallel(delayed(process_file)(f, reco_algorithm=conf_obj.reco_algorithm,
+                                                          n_events=n_events, silent=True,
+                                                          return_input_file=True)for f in chunk)
+                for r in results:
+                    runs, array_events, telescope_events, input_file = r
+
+                    if runs is None or array_events is None or telescope_events is None:
+                        continue
+
+                    output_file = Path(output_folder).joinpath(output_file_for_input_file(input_file))
+                    print(f'processed file {input_file}, writing to {output_file}')
+
+                    fact.io.write_data(runs, output_file.as_posix(), key='runs', mode='w')
+                    fact.io.write_data(array_events, output_file.as_posix(), key='array_events', mode='a')
+                    fact.io.write_data(telescope_events, output_file.as_posix(), key='telescope_events', mode='a')
+
+                    verify_file(output_file)
+
+    else:
+        output_files = list(map(output_file_for_input_file, input_files))
+        #output_files = [output_file_for_input_file(x) for x in input_files]
+        print('in:', input_files)
+        print('out', output_files)
+        for input_file, output_file in tqdm(zip(input_files, output_files)):
+            print(f'processing file {input_file}, writing to {output_file}')
+            print(type(input_file))
+            runs, array_events, telescope_events = process_file(input_file.as_posix(), 
+                                                                reco_algorithm=conf_obj.reco_algorithm, 
+                                                                n_events=conf_obj.n_events)
+
+            if runs is None or array_events is None or telescope_events is None:
+                print('file contained no information.')
+                continue
+
+            fact.io.write_data(runs, output_file.as_posix(), key='runs', mode='w')
+            fact.io.write_data(array_events, output_file.as_posix(), key='array_events', mode='a')
+            fact.io.write_data(telescope_events, output_file.as_posix(), key='telescope_events', mode='a')
+
+            verify_file(output_file.as_posix())
 
 if __name__ == '__main__':
     main()
-
 
 
 
