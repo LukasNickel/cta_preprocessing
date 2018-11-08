@@ -29,6 +29,24 @@ np.warnings.filterwarnings('ignore')
 ## AUSSORTIEREN!!
 
 
+names_to_id = {'LSTCam': 1, 'NectarCam': 2, 'FlashCam': 3, 'DigiCam': 4, 'CHEC': 5}
+types_to_id = {'LST': 1, 'MST': 2, 'SST': 3}
+allowed_cameras = ['LSTCam', 'NectarCam', 'DigiCam']
+
+
+cleaning_level = {
+    # 'ASTRICam': (5, 7, 2),  # (5, 10)?
+    # 'FlashCam': (12, 15, 2),
+    'LSTCam': (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
+    # ASWG Zeuthen talk by Abelardo Moralejo:
+    'NectarCam': (3, 5.5, 2),
+    # "FlashCam": (4, 8),  # there is some scaling missing?
+    'DigiCam': (2, 4.5, 2),
+    # 'CHEC': (2, 4, 2),
+    # 'SCTCam': (1.5, 3, 2)
+}
+
+
 def event_information(event, image_features, reconstruction):
     counter = Counter(image_features.telescope_type_name)
     d = {
