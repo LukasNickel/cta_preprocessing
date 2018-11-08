@@ -1,3 +1,4 @@
+from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image.hillas import hillas_parameters_5, HillasParameterizationError
 from ctapipe.image import leakage
@@ -26,10 +27,16 @@ warnings.filterwarnings('ignore', category=FutureWarning, append=True)
 np.warnings.filterwarnings('ignore')
 
 
+
+from event_processing import *
+
 ## AUSSORTIEREN!!
 
 
 def process_file(input_file, reco_algorithm, n_events=-1, silent=False, return_input_file=False):
+    print(input_file)
+    print(type(input_file))
+
     event_source = EventSourceFactory.produce(
         input_url=input_file,
         max_events=n_events if n_events > 1 else None,
