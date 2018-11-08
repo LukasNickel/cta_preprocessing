@@ -1,4 +1,7 @@
 import yaml
+import os 
+dir_path = os.path.dirname(os.path.realpath(__file__))  #Workaround to find sample config, could maybe be done smoother
+import pathlib
 
 class PREPConfig(object):
     __slots__ = (
@@ -12,10 +15,14 @@ class PREPConfig(object):
         'overwrite',
         'chunksize',
         'silent',
-        'verbose'
+        'verbose',
+        'input_pattern',
+        'output_suffix',
     )
     def __init__(self, config):
-        with open(config) as config, open('sample_config.yaml') as sample:
+        print(dir_path)
+        print(pathlib.Path.cwd())
+        with open(config) as config, open(dir_path+'/sample_config.yaml') as sample:
             config = yaml.load(config)
             sample = yaml.load(sample)
         for x in self.__slots__:
