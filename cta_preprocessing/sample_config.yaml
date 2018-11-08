@@ -44,3 +44,7 @@ chunksize: 50
 silent: False
 
 verbose: 50
+
+input_pattern: "*.simtel.gz"
+
+output_suffix: ".hdf5"
