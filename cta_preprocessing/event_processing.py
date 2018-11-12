@@ -26,7 +26,7 @@ warnings.filterwarnings('ignore', category=FutureWarning, append=True)
 np.warnings.filterwarnings('ignore')
 
 
-## AUSSORTIEREN!!
+## AUSSORTIEREN!! (Mit Config erledigen)
 
 
 names_to_id = {'LSTCam': 1, 'NectarCam': 2, 'FlashCam': 3, 'DigiCam': 4, 'CHEC': 5}

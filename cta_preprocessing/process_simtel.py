@@ -1,11 +1,11 @@
 import click
-from parameters import PREPConfig
+from .parameters import PREPConfig
 from pathlib import Path
 import numpy as np
 from joblib import Parallel, delayed
-from file_processing import process_file
-from file_processing import verify_file
-from file_processing import write_output
+from .file_processing import process_file
+from .file_processing import verify_file
+from .file_processing import write_output
 from tqdm import tqdm
 import sys
 # do some horrible things to silence warnings in ctapipe
