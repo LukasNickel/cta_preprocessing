@@ -20,7 +20,8 @@ class PREPConfig(object):
         'output_suffix',
     )
     def __init__(self, config_file):
-        sample_file = pathlib.Path(sys.path[0] + '/sample_config.yaml')
+        #sample_file = pathlib.Path(sys.path[0] + '/sample_config.yaml')
+        sample_file=('/home/lnickel/Documents/cta_prep_module/cta_preprocessing/cta_preprocessing/sample_config.yaml')
         with open(config_file) as config, open(sample_file) as sample:
             config = yaml.load(config)
             sample = yaml.load(sample)
