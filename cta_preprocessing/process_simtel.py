@@ -19,7 +19,6 @@ import sys
                 type=click.Path(dir_okay=True, file_okay=False)
                 )
 @click.argument('config_file',
-                default=Path(sys.path[0]+'/sample_config.yaml'),
                 type=click.Path(file_okay=True)
                 )
 def main(input_folder, output_folder, config_file):
