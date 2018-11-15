@@ -31,7 +31,7 @@ class PREPConfig(object):
 
 
 class MissingConfigEntry(Exception):
-    """Exception raised for errors in the input.
+    """Exception raised for missing entries in the given config file.
 
     Attributes:
         expression -- input expression in which the error occurred
