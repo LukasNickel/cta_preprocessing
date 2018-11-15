@@ -16,7 +16,7 @@ in the main directory.
 
 ## Usage:
 Call 
-> process_simtel <data folder> <output folder> <config file>
+> process_simtel data_folder output_folder config_file
 
 If you are unsure about what the config file needs to contain take a look at 
 > config/sample_config.yaml
