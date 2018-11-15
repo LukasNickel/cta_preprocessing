@@ -18,36 +18,10 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 import glob
 import os
-# do some horrible things to silence warnings in ctapipe
-import warnings
-from astropy.utils.exceptions import AstropyDeprecationWarning
-warnings.filterwarnings('ignore', category=AstropyDeprecationWarning, append=True)
-warnings.filterwarnings('ignore', category=FutureWarning, append=True)
-np.warnings.filterwarnings('ignore')
 
 
-## AUSSORTIEREN!! (Mit Config erledigen)
 
-
-names_to_id = {'LSTCam': 1, 'NectarCam': 2, 'FlashCam': 3, 'DigiCam': 4, 'CHEC': 5}
-types_to_id = {'LST': 1, 'MST': 2, 'SST': 3}
-allowed_cameras = ['LSTCam', 'NectarCam', 'DigiCam']
-
-
-cleaning_level = {
-    # 'ASTRICam': (5, 7, 2),  # (5, 10)?
-    # 'FlashCam': (12, 15, 2),
-    'LSTCam': (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
-    # ASWG Zeuthen talk by Abelardo Moralejo:
-    'NectarCam': (3, 5.5, 2),
-    # "FlashCam": (4, 8),  # there is some scaling missing?
-    'DigiCam': (2, 4.5, 2),
-    # 'CHEC': (2, 4, 2),
-    # 'SCTCam': (1.5, 3, 2)
-}
-
-
-def event_information(event, image_features, reconstruction):
+def event_information(event, image_features, reconstruction, config):
     counter = Counter(image_features.telescope_type_name)
     d = {
         'mc_alt': event.mc.alt,
@@ -55,7 +29,7 @@ def event_information(event, image_features, reconstruction):
         'mc_core_x': event.mc.core_x,
         'mc_core_y': event.mc.core_y,
         'mc_x_max': event.mc.x_max.to(u.g / u.cm**2).value,
-        'num_triggered_telescopes': number_of_valid_triggerd_cameras(event),
+        'num_triggered_telescopes': number_of_valid_triggerd_cameras(event, config),
         'mc_height_first_interaction': event.mc.h_first_int,
         'mc_energy': event.mc.energy.to('TeV').value,
         'mc_corsika_primary_id': event.mc.shower_primary_id,
@@ -75,11 +49,12 @@ def event_information(event, image_features, reconstruction):
     return {k: strip_unit(v) for k, v in d.items()}
 
 
-def process_event(event, reco_algorithm='planes'):
+def process_event(event, config):
     '''
     Processes
     '''
 
+    reco_algorithm = config.reco_algorithm
     features = {}
     params = {}
 
@@ -91,12 +66,12 @@ def process_event(event, reco_algorithm='planes'):
     tel_focal_lengths = {}
     for telescope_id, dl1 in event.dl1.tel.items():
         camera = event.inst.subarray.tels[telescope_id].camera
-        if camera.cam_id not in allowed_cameras:
+        if camera.cam_id not in config.allowed_cameras:
             continue
 
         telescope_type_name = event.inst.subarray.tels[telescope_id].optics.tel_type
 
-        boundary_thresh, picture_thresh, min_number_picture_neighbors = cleaning_level[camera.cam_id]
+        boundary_thresh, picture_thresh, min_number_picture_neighbors = config.cleaning_level[camera.cam_id]
         mask = tailcuts_clean(
             camera,
             dl1.image[0],
@@ -130,10 +105,10 @@ def process_event(event, reco_algorithm='planes'):
             'array_event_id': event.dl0.event_id,
             'telescope_id': int(telescope_id),
             'camera_name': camera.cam_id,
-            'camera_id': names_to_id[camera.cam_id],
+            'camera_id': config.names_to_id[camera.cam_id],
             'run_id': event.r0.obs_id,
             'telescope_type_name': telescope_type_name,
-            'telescope_type_id': types_to_id[telescope_type_name],
+            'telescope_type_id': config.types_to_id[telescope_type_name],
             'pointing_azimuth': event.mc.tel[telescope_id].azimuth_raw,
             'pointing_altitude': event.mc.tel[telescope_id].altitude_raw,
             'mirror_area': telescope_description.optics.mirror_area,
@@ -157,7 +132,7 @@ def process_event(event, reco_algorithm='planes'):
         if telescope_id not in params:
             continue
         camera = event.inst.subarray.tels[telescope_id].camera
-        if camera.cam_id not in allowed_cameras:
+        if camera.cam_id not in config.allowed_cameras:
             continue
 
         pos = event.inst.subarray.positions[telescope_id]
@@ -170,10 +145,10 @@ def process_event(event, reco_algorithm='planes'):
     return pd.DataFrame(list(features.values())), reconstruction, params
 
 
-def number_of_valid_triggerd_cameras(event):
+def number_of_valid_triggerd_cameras(event, config):
     triggerd_tel_ids = event.trig.tels_with_trigger
     triggerd_camera_names = [event.inst.subarray.tels[i].camera.cam_id for i in triggerd_tel_ids]
-    valid_triggered_cameras = list(filter(lambda c: c in allowed_cameras, triggerd_camera_names))
+    valid_triggered_cameras = list(filter(lambda c: c in config.allowed_cameras, triggerd_camera_names))
     return len(valid_triggered_cameras)
 
 

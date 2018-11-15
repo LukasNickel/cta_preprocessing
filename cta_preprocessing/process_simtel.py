@@ -8,9 +8,6 @@ from .file_processing import verify_file
 from .file_processing import write_output
 from tqdm import tqdm
 import sys
-# do some horrible things to silence warnings in ctapipe
-# import warnings
-# from astropy.utils.exceptions import AstropyDeprecationWarning
 
 
 def output_file_for_input_file(input_file):
@@ -61,16 +58,14 @@ def main(input_folder, output_folder, config_file):
 
                 results = parallel(delayed(process_file)
                                           (f,
-                                           reco_algorithm=config.reco_algorithm,
-                                           n_events=config.n_events,
-                                           silent=config.silent,
+                                           config,
                                            return_input_file=True)
                                    for f in chunk
                                    )
 
                 for r in results:
                     runs, array_events, telescope_events, input_file = r
-                    if runs is None or array_events is None or telescope_events is None:
+                    if any([runs.empty, array_events.empty, telescope_events.empty]):
                         print('file contained no information.')
                         continue
 
@@ -88,13 +83,11 @@ def main(input_folder, output_folder, config_file):
             print(f'processing file {input_file}, writing to {output_file}')
 
             results = process_file(input_file,
-                                   reco_algorithm=config.reco_algorithm,
-                                   n_events=config.n_events
+                                   config,
                                    )
 
             runs, array_events, telescope_events = results
-            # if any in [runs, array_events, telescope_events] is None:
-            if runs is None or array_events is None or telescope_events is None:
+            if any([runs.empty, array_events.empty, telescope_events.empty]):
                 print('file contained no information.')
                 continue
 

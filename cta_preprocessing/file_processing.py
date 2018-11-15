@@ -11,10 +11,14 @@ from tqdm import tqdm
 
 
 def process_file(input_file,
-                 reco_algorithm,
-                 n_events=-1,
-                 silent=False,
+                 config,
                  return_input_file=False):
+
+
+    reco_algorithm = config.reco_algorithm
+    n_events=config.n_events
+    silent=config.silent
+    
 
     event_source = EventSourceFactory.produce(
         input_url=input_file.as_posix(),
@@ -30,45 +34,44 @@ def process_file(input_file,
     telescope_event_information = []
     array_event_information = []
     for event in tqdm(event_source, disable=silent):
-        if number_of_valid_triggerd_cameras(event) < 2:
+        if number_of_valid_triggerd_cameras(event, config) < 2:
             continue
 
         calibrator.calibrate(event)
         try:
             image_features, reconstruction, _ = process_event(event,
-                                                              reco_algorithm=reco_algorithm
+                                                              config
                                                               )
             event_features = event_information(event,
                                                image_features,
-                                               reconstruction
+                                               reconstruction,
+                                               config
                                                )
             array_event_information.append(event_features)
             telescope_event_information.append(image_features)
         except TooFewTelescopesException:
             continue
 
-    if (len(telescope_event_information) == 0):
-        if return_input_file:
-            return None, None, None, None
-        return None, None, None
-
     telescope_events = pd.concat(telescope_event_information)
-    telescope_events.set_index(['run_id', 'array_event_id', 'telescope_id'],
-                               drop=True,
-                               verify_integrity=True,
-                               inplace=True
-                               )
+    if not telescope_events.empty:
+        telescope_events.set_index(['run_id', 'array_event_id', 'telescope_id'],
+                                drop=True,
+                                verify_integrity=True,
+                                inplace=True
+                                )
 
     array_events = pd.DataFrame(array_event_information)
-    array_events.set_index(['run_id', 'array_event_id'],
-                           drop=True,
-                           verify_integrity=True,
-                           inplace=True
-                           )
+    if not array_events.empty:
+        array_events.set_index(['run_id', 'array_event_id'],
+                            drop=True,
+                            verify_integrity=True,
+                            inplace=True
+                            )
 
     run_information = read_simtel_mc_information(input_file)
     df_runs = pd.DataFrame([run_information])
-    df_runs.set_index('run_id', drop=True, verify_integrity=True, inplace=True)
+    if not df_runs.empty:
+        df_runs.set_index('run_id', drop=True, verify_integrity=True, inplace=True)
 
     if return_input_file:
         return df_runs, array_events, telescope_events, input_file
