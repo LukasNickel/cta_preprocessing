@@ -11,6 +11,7 @@ for installation of ctapipe.
 
 Everything else can be installed via 
 > pip install .
+
 in the main directory.
 
 ## Usage:
