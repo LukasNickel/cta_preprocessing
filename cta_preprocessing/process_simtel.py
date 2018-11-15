@@ -6,16 +6,9 @@ from joblib import Parallel, delayed
 from .file_processing import process_file
 from .file_processing import verify_file
 from .file_processing import write_output
+from .file_processing import output_file_for_input_file
 from tqdm import tqdm
 import sys
-
-
-def output_file_for_input_file(input_file):
-    raw_name = Path(input_file.name)
-    while raw_name.suffixes:
-        raw_name_stem = raw_name.stem
-        raw_name = Path(raw_name_stem)
-    return(raw_name.with_suffix('.hdf5'))
 
 
 @click.command()
@@ -53,7 +46,8 @@ def main(input_folder, output_folder, config_file):
         n_chunks = (len(input_files) // chunksize) + 1
         chunks = np.array_split(input_files, n_chunks)
 
-        with Parallel(n_jobs=config.n_jobs, verbose=config.verbose) as parallel:
+        with Parallel(n_jobs=config.n_jobs,
+                      verbose=config.verbose) as parallel:
             for chunk in tqdm(chunks):
 
                 results = parallel(delayed(process_file)
@@ -65,7 +59,10 @@ def main(input_folder, output_folder, config_file):
 
                 for r in results:
                     runs, array_events, telescope_events, input_file = r
-                    if any([runs.empty, array_events.empty, telescope_events.empty]):
+                    if any([runs.empty,
+                            array_events.empty,
+                            telescope_events.empty]
+                           ):
                         print('file contained no information.')
                         continue
 
@@ -87,7 +84,10 @@ def main(input_folder, output_folder, config_file):
                                    )
 
             runs, array_events, telescope_events = results
-            if any([runs.empty, array_events.empty, telescope_events.empty]):
+            if any([runs.empty,
+                    array_events.empty,
+                    telescope_events.empty]
+                   ):
                 print('file contained no information.')
                 continue
 

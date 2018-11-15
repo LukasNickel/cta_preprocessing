@@ -8,21 +8,16 @@ import pandas as pd
 import fact.io
 import pyhessio
 from tqdm import tqdm
+from pathlib import Path
 
 
 def process_file(input_file,
                  config,
                  return_input_file=False):
 
-
-    reco_algorithm = config.reco_algorithm
-    n_events=config.n_events
-    silent=config.silent
-    
-
     event_source = EventSourceFactory.produce(
         input_url=input_file.as_posix(),
-        max_events=n_events if n_events > 1 else None,
+        max_events=config.n_events if config.n_events > 1 else None,
         product='HESSIOEventSource',
     )
     calibrator = CameraCalibrator(
@@ -33,7 +28,7 @@ def process_file(input_file,
 
     telescope_event_information = []
     array_event_information = []
-    for event in tqdm(event_source, disable=silent):
+    for event in tqdm(event_source, disable=config.silent):
         if number_of_valid_triggerd_cameras(event, config) < 2:
             continue
 
@@ -54,24 +49,30 @@ def process_file(input_file,
 
     telescope_events = pd.concat(telescope_event_information)
     if not telescope_events.empty:
-        telescope_events.set_index(['run_id', 'array_event_id', 'telescope_id'],
-                                drop=True,
-                                verify_integrity=True,
-                                inplace=True
-                                )
+        telescope_events.set_index(['run_id',
+                                    'array_event_id',
+                                    'telescope_id'],
+                                   drop=True,
+                                   verify_integrity=True,
+                                   inplace=True
+                                   )
 
     array_events = pd.DataFrame(array_event_information)
     if not array_events.empty:
-        array_events.set_index(['run_id', 'array_event_id'],
-                            drop=True,
-                            verify_integrity=True,
-                            inplace=True
-                            )
+        array_events.set_index(['run_id',
+                                'array_event_id'],
+                               drop=True,
+                               verify_integrity=True,
+                               inplace=True
+                               )
 
     run_information = read_simtel_mc_information(input_file)
     df_runs = pd.DataFrame([run_information])
     if not df_runs.empty:
-        df_runs.set_index('run_id', drop=True, verify_integrity=True, inplace=True)
+        df_runs.set_index('run_id',
+                          drop=True,
+                          verify_integrity=True,
+                          inplace=True)
 
     if return_input_file:
         return df_runs, array_events, telescope_events, input_file
@@ -148,3 +149,11 @@ def write_output(runs, array_events, telescope_events, output_file):
                        key='telescope_events',
                        mode='a'
                        )
+
+
+def output_file_for_input_file(input_file):
+    raw_name = Path(input_file.name)
+    while raw_name.suffixes:
+        raw_name_stem = raw_name.stem
+        raw_name = Path(raw_name_stem)
+    return(raw_name.with_suffix('.hdf5'))

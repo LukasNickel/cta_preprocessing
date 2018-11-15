@@ -1,6 +1,4 @@
 import yaml
-import pathlib
-import sys
 
 
 class PREPConfig(object):
@@ -19,6 +17,7 @@ class PREPConfig(object):
         'input_pattern',
         'output_suffix',
     )
+
     def __init__(self, config_file):
         with open(config_file) as config:
             config = yaml.load(config)
@@ -40,4 +39,4 @@ class MissingConfigEntry(Exception):
     """
     def __init__(self, expression, message):
         self.expression = expression
-        self.message =  message
+        self.message = message

@@ -1,24 +1,16 @@
-from ctapipe.calib import CameraCalibrator
-from ctapipe.image.hillas import hillas_parameters_5, HillasParameterizationError
+from ctapipe.image.hillas import hillas_parameters_5
+from ctapipe.image.hillas import HillasParameterizationError
 from ctapipe.image import leakage
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.reco import HillasReconstructor
-from ctapipe.reco.HillasReconstructor import TooFewTelescopesException
-
-from joblib import Parallel, delayed
+from ctapipe.reco import hillas_intersection as HillasIntersection  # ??
 
 import pandas as pd
-import fact.io
-import click
-import pyhessio
 import numpy as np
 from collections import Counter
-from tqdm import tqdm
+
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-import glob
-import os
-
 
 
 def event_information(event, image_features, reconstruction, config):
@@ -29,7 +21,8 @@ def event_information(event, image_features, reconstruction, config):
         'mc_core_x': event.mc.core_x,
         'mc_core_y': event.mc.core_y,
         'mc_x_max': event.mc.x_max.to(u.g / u.cm**2).value,
-        'num_triggered_telescopes': number_of_valid_triggerd_cameras(event, config),
+        'num_triggered_telescopes': number_of_valid_triggerd_cameras(event,
+                                                                     config),
         'mc_height_first_interaction': event.mc.h_first_int,
         'mc_energy': event.mc.energy.to('TeV').value,
         'mc_corsika_primary_id': event.mc.shower_primary_id,
@@ -121,12 +114,23 @@ def process_event(event, config):
 
     if reco_algorithm == 'intersection':
         reco = HillasIntersection()
-        array_direction = SkyCoord(alt=event.mcheader.run_array_direction[1], az=event.mcheader.run_array_direction[0], frame='altaz')
-        reconstruction = reco.predict(params, tel_x, tel_y, tel_focal_lengths, array_direction)
+        array_direction = SkyCoord(alt=event.mcheader.run_array_direction[1],
+                                   az=event.mcheader.run_array_direction[0],
+                                   frame='altaz'
+                                   )
+        reconstruction = reco.predict(params,
+                                      tel_x,
+                                      tel_y,
+                                      tel_focal_lengths,
+                                      array_direction
+                                      )
     elif reco_algorithm == 'planes':
         reco = HillasReconstructor()
-        reconstruction = reco.predict(params, event.inst, pointing_altitude, pointing_azimuth)
-
+        reconstruction = reco.predict(params,
+                                      event.inst,
+                                      pointing_altitude,
+                                      pointing_azimuth
+                                      )
 
     for telescope_id in event.dl1.tel.keys():
         if telescope_id not in params:
@@ -147,8 +151,12 @@ def process_event(event, config):
 
 def number_of_valid_triggerd_cameras(event, config):
     triggerd_tel_ids = event.trig.tels_with_trigger
-    triggerd_camera_names = [event.inst.subarray.tels[i].camera.cam_id for i in triggerd_tel_ids]
-    valid_triggered_cameras = list(filter(lambda c: c in config.allowed_cameras, triggerd_camera_names))
+    triggerd_camera_names = [event.inst.subarray.tels[i].camera.cam_id
+                             for i in triggerd_tel_ids]
+    valid_triggered_cameras = list(filter(lambda c:
+                                          c in
+                                          config.allowed_cameras,
+                                          triggerd_camera_names))
     return len(valid_triggered_cameras)
 
 
