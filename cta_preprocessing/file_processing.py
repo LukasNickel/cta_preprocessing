@@ -6,7 +6,7 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.reco.HillasReconstructor import TooFewTelescopesException
 import pandas as pd
 import fact.io
-import pyhessio
+import pyhessio   ## replace with fact/eventio ?
 from tqdm import tqdm
 from pathlib import Path
 
@@ -66,7 +66,7 @@ def process_file(input_file,
                                inplace=True
                                )
 
-    run_information = read_simtel_mc_information(input_file)
+    run_information = read_simtel_mc_information(input_file) ### TODO: adapt to real data
     df_runs = pd.DataFrame([run_information])
     if not df_runs.empty:
         df_runs.set_index('run_id',
@@ -80,7 +80,7 @@ def process_file(input_file,
 
 
 def verify_file(input_file_path):
-    runs = fact.io.read_data(input_file_path.as_posix(), key='runs')
+    runs = fact.io.read_data(input_file_path.as_posix(), key='runs')   ## same thing with real data
     runs.set_index('run_id', drop=True, verify_integrity=True, inplace=True)
 
     telescope_events = fact.io.read_data(input_file_path.as_posix(),
