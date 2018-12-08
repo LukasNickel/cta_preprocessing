@@ -7,7 +7,8 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.reco.HillasReconstructor import TooFewTelescopesException
 import pandas as pd
 import fact.io
-import pyhessio   ## replace with fact/eventio ?
+# import pyhessio   ## replace with fact/eventio ?
+import eventio
 from tqdm import tqdm
 from pathlib import Path
 
@@ -31,10 +32,7 @@ def process_data(input_file,
         r1_product='NullR1Calibrator',  ## needs to be replaced
         extractor_product=integrator,
     )
-    ## probably telescope events and array events work similar?
-    ## depends on the file format i guess...
-    ## what about (mc) run information?
-    ## array events unclear as well
+    
     df_runs = pd.DataFrame()
     array_events = pd.DataFrame()
     telescope_events = pd.DataFrame()
@@ -69,7 +67,7 @@ def process_file(input_file,
             image_features, reconstruction, _ = process_event(event,
                                                               config
                                                               )
-            event_features = event_information(event,   ## probably problematicfor real data
+            event_features = event_information(event,   ## probably problematic for real data
                                                image_features,
                                                reconstruction,
                                                config
@@ -141,11 +139,12 @@ def verify_file(input_file_path):
 
 
 def read_simtel_mc_information(simtel_file):
-    with pyhessio.open_hessio(simtel_file.as_posix()) as f:
+   # with pyhessio.open_hessio(simtel_file.as_posix()) as f:
         # do some weird hessio fuckup
-        eventstream = f.move_to_next_event()
-        _ = next(eventstream)
-
+   #     eventstream = f.move_to_next_event()
+   #     _ = next(eventstream)
+    with eventio.SimTelFile(simtel_file.as_posix()) as f:
+        print(f.telescope_description)
         d = {
             'mc_spectral_index': f.get_spectral_index(),
             'mc_num_reuse': f.get_mc_num_use(),
