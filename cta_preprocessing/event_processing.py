@@ -12,7 +12,8 @@ from collections import Counter
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 
-
+## how does this work with real data/missing mc information?
+## maybe should built in some exception handling?
 def event_information(event, image_features, reconstruction, config):
     counter = Counter(image_features.telescope_type_name)
     d = {

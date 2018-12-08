@@ -2,6 +2,7 @@ from .event_processing import event_information
 from .event_processing import process_event
 from .event_processing import number_of_valid_triggerd_cameras
 from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io.lsteventsource import LSTEventSource
 from ctapipe.calib import CameraCalibrator
 from ctapipe.reco.HillasReconstructor import TooFewTelescopesException
 import pandas as pd
@@ -9,6 +10,37 @@ import fact.io
 import pyhessio   ## replace with fact/eventio ?
 from tqdm import tqdm
 from pathlib import Path
+
+integrator = 'NeighbourPeakIntegrator'
+## for real data use:
+## TargetIOR1Calibrator ?
+## or for both use
+## CameraR1CalibratorFactory  ?
+
+def process_data(input_file,
+                 config,
+                 return_input_file=False):
+
+    event_source = EventSourceFactory.produce(
+        input_url=input_file.as_posix(),
+        max_events=config.n_events if config.n_events > 1 else None,
+        product='LSTEventSource',
+    )
+    calibrator = CameraCalibrator(
+        eventsource=event_source,
+        r1_product='NullR1Calibrator',  ## needs to be replaced
+        extractor_product=integrator,
+    )
+    ## probably telescope events and array events work similar?
+    ## depends on the file format i guess...
+    ## what about (mc) run information?
+    ## array events unclear as well
+    df_runs = pd.DataFrame()
+    array_events = pd.DataFrame()
+    telescope_events = pd.DataFrame()
+    if return_input_file:
+        return df_runs, array_events, telescope_events, input_file
+    return df_runs, array_events, telescope_events
 
 
 def process_file(input_file,
@@ -23,13 +55,13 @@ def process_file(input_file,
     calibrator = CameraCalibrator(
         eventsource=event_source,
         r1_product='HESSIOR1Calibrator',
-        extractor_product='NeighbourPeakIntegrator',
+        extractor_product=integrator,   ## might want to add this to config?
     )
 
     telescope_event_information = []
     array_event_information = []
     for event in tqdm(event_source, disable=config.silent):
-        if number_of_valid_triggerd_cameras(event, config) < 2:
+        if number_of_valid_triggerd_cameras(event, config) < 2:   ## this should probably be a config option as well?
             continue
 
         calibrator.calibrate(event)
@@ -37,7 +69,7 @@ def process_file(input_file,
             image_features, reconstruction, _ = process_event(event,
                                                               config
                                                               )
-            event_features = event_information(event,
+            event_features = event_information(event,   ## probably problematicfor real data
                                                image_features,
                                                reconstruction,
                                                config
