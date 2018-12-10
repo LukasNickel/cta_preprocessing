@@ -2,6 +2,8 @@ from ctapipe.image.hillas import hillas_parameters_5
 from ctapipe.image.hillas import HillasParameterizationError
 from ctapipe.image import leakage
 from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.image.cleaning import fact_image_cleaning
+from ctapipe.image.cleaning import number_of_islands
 from ctapipe.reco import HillasReconstructor
 from ctapipe.reco import hillas_intersection as HillasIntersection  # ??
 
@@ -12,8 +14,7 @@ from collections import Counter
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 
-## how does this work with real data/missing mc information?
-## maybe should built in some exception handling?
+
 def event_information(event, image_features, reconstruction, config):
     counter = Counter(image_features.telescope_type_name)
     d = {
@@ -65,14 +66,26 @@ def process_event(event, config):
 
         telescope_type_name = event.inst.subarray.tels[telescope_id].optics.tel_type
 
-        boundary_thresh, picture_thresh, min_number_picture_neighbors = config.cleaning_level[camera.cam_id]
-        mask = tailcuts_clean(
-            camera,
-            dl1.image[0],
-            boundary_thresh=boundary_thresh,
-            picture_thresh=picture_thresh,
-            min_number_picture_neighbors=min_number_picture_neighbors
-        )
+        if config.cleaning_method == tailcuts_clean:
+            boundary_thresh, picture_thresh, min_number_picture_neighbors = config.cleaning_level[camera.cam_id]
+            mask = tailcuts_clean(
+                camera,
+                dl1.image[0],
+                *config.cleaning_level[camera.cam_id]  ## test this ##seems to work
+                # boundary_thresh=boundary_thresh,
+                # picture_thresh=picture_thresh,
+                # min_number_picture_neighbors=min_number_picture_neighbors
+            )
+
+        else if config.cleaning_method == fact_image_cleaning:
+            mask = tailcuts_clean(
+                camera,
+                dl1.image[0],
+                *config.cleaning_level_fact[camera.cam_id]  ## test this
+                # boundary_thresh=boundary_thresh,
+                # picture_thresh=picture_thresh,
+                # min_number_picture_neighbors=min_number_picture_neighbors
+            )
 
         try:
             cleaned = dl1.image[0].copy()
@@ -85,6 +98,8 @@ def process_event(event, config):
         except HillasParameterizationError:
             continue
 
+
+        num_islands_container = number_of_islands(camera, mask)
         leakage_container = leakage(camera, dl1.image[0], mask)
 
         pointing_azimuth[telescope_id] = event.mc.tel[telescope_id].azimuth_raw * u.rad
@@ -111,6 +126,8 @@ def process_event(event, config):
 
         d.update(hillas_container.as_dict())
         d.update(leakage_container.as_dict())
+        d.update(num_islands_container.as_dict())
+
         features[telescope_id] = ({k: strip_unit(v) for k, v in d.items()})
 
     if reco_algorithm == 'intersection':

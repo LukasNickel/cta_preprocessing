@@ -3,24 +3,10 @@ output_suffix: ".hdf5"
 
 overwrite: True
 
-allowed_cameras: 
+allowed_cameras:
   - LSTCam
   - NectarCam
   - DigiCam
-
-cleaning_level:
-  LSTCam: 
-    - 3.5
-    - 7.5
-    - 2
-  NectarCam: 
-    - 3
-    - 5.5
-    - 2
-  DigiCam:
-    - 2
-    - 4.5
-    - 2
 
 reco_algorithm: planes
 
@@ -45,3 +31,17 @@ chunksize: 50
 silent: False
 
 verbose: 50
+
+cleaning_level:   ## how do i want to handle different algorrithms needing different paramteers?
+  LSTCam:
+    - 3.5
+    - 7.5
+    - 2
+  NectarCam:
+    - 3
+    - 5.5
+    - 2
+  DigiCam:
+    - 2
+    - 4.5
+    - 2
