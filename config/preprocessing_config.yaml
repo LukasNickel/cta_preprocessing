@@ -9,6 +9,8 @@ allowed_cameras:
   - DigiCam
 
 reco_algorithm: planes
+integrator : NeighbourPeakIntegrator
+cleaning_method: tailcuts_clean
 
 names_to_id:
  LSTCam: 1
@@ -45,3 +47,6 @@ cleaning_level:   ## how do i want to handle different algorrithms needing diffe
     - 2
     - 4.5
     - 2
+
+
+min_number_of_valid_triggered_cameras: 2

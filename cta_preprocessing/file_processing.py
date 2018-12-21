@@ -7,16 +7,11 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.reco.HillasReconstructor import TooFewTelescopesException
 import pandas as pd
 import fact.io
-# import pyhessio   ## replace with fact/eventio ?
+import pyhessio   ## replace with fact/eventio ?
 import eventio
 from tqdm import tqdm
 from pathlib import Path
 
-integrator = 'NeighbourPeakIntegrator'
-## for real data use:
-## TargetIOR1Calibrator ?
-## or for both use
-## CameraR1CalibratorFactory  ?
 
 def process_data(input_file,
                  config,
@@ -30,7 +25,7 @@ def process_data(input_file,
     calibrator = CameraCalibrator(
         eventsource=event_source,
         r1_product='NullR1Calibrator',  ## needs to be replaced
-        extractor_product=integrator,
+        extractor_product=config.integrator,
     )
     
     df_runs = pd.DataFrame()
@@ -53,13 +48,13 @@ def process_file(input_file,
     calibrator = CameraCalibrator(
         eventsource=event_source,
         r1_product='HESSIOR1Calibrator',
-        extractor_product=integrator,   ## might want to add this to config?
+        extractor_product=config.integrator,   ## might want to add this to config?
     )
 
     telescope_event_information = []
     array_event_information = []
     for event in tqdm(event_source, disable=config.silent):
-        if number_of_valid_triggerd_cameras(event, config) < 2:   ## this should probably be a config option as well?
+        if number_of_valid_triggerd_cameras(event, config) < config.min_number_of_valid_triggered_cameras:
             continue
 
         calibrator.calibrate(event)
@@ -139,12 +134,11 @@ def verify_file(input_file_path):
 
 
 def read_simtel_mc_information(simtel_file):
-   # with pyhessio.open_hessio(simtel_file.as_posix()) as f:
+    with pyhessio.open_hessio(simtel_file.as_posix()) as f:
         # do some weird hessio fuckup
-   #     eventstream = f.move_to_next_event()
-   #     _ = next(eventstream)
-    with eventio.SimTelFile(simtel_file.as_posix()) as f:
-        print(f.telescope_description)
+        eventstream = f.move_to_next_event()
+        _ = next(eventstream)
+    #with eventio.SimTelFile(simtel_file.as_posix()) as f:   #crashing for multiple files right now
         d = {
             'mc_spectral_index': f.get_spectral_index(),
             'mc_num_reuse': f.get_mc_num_use(),

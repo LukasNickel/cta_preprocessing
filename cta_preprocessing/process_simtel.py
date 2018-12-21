@@ -28,11 +28,8 @@ def main(input_folder, output_folder, config_file):
     output_path = Path(output_folder)
 
     input_files = sorted(input_path.glob(config.input_pattern))
-    print(input_files)
-
     output_files = [output_path.joinpath(output_file_for_input_file(x))
                     for x in input_files]
-    print(output_files)
 
     if not config.overwrite:
         existing_output = [x.name for x in Path(output_folder).glob('*')]

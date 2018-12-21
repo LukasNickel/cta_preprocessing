@@ -59,6 +59,13 @@ def process_event(event, config):
     tel_x = {}
     tel_y = {}
     tel_focal_lengths = {}
+    cleaning_method = config.cleaning_method
+    valid_cleaning_methods = ['tailcuts_clean', 'fact_image_cleaning']
+    if cleaning_method not in valid_cleaning_methods:
+        print('Cleaning Method not implemented')
+        print('Please use one of ', valid_cleaning_methods)
+        return None
+
     for telescope_id, dl1 in event.dl1.tel.items():
         camera = event.inst.subarray.tels[telescope_id].camera
         if camera.cam_id not in config.allowed_cameras:
@@ -66,25 +73,19 @@ def process_event(event, config):
 
         telescope_type_name = event.inst.subarray.tels[telescope_id].optics.tel_type
 
-        if config.cleaning_method == tailcuts_clean:
+        if cleaning_method == 'tailcuts_clean':
             boundary_thresh, picture_thresh, min_number_picture_neighbors = config.cleaning_level[camera.cam_id]
             mask = tailcuts_clean(
                 camera,
                 dl1.image[0],
-                *config.cleaning_level[camera.cam_id]  ## test this ##seems to work
-                # boundary_thresh=boundary_thresh,
-                # picture_thresh=picture_thresh,
-                # min_number_picture_neighbors=min_number_picture_neighbors
+                *config.cleaning_level[camera.cam_id]
             )
 
-        else if config.cleaning_method == fact_image_cleaning:
+        elif cleaning_method == 'fact_image_cleaning':
             mask = tailcuts_clean(
                 camera,
                 dl1.image[0],
-                *config.cleaning_level_fact[camera.cam_id]  ## test this
-                # boundary_thresh=boundary_thresh,
-                # picture_thresh=picture_thresh,
-                # min_number_picture_neighbors=min_number_picture_neighbors
+                *config.cleaning_level_fact[camera.cam_id]
             )
 
         try:
@@ -97,10 +98,11 @@ def process_event(event, config):
             params[telescope_id] = hillas_container
         except HillasParameterizationError:
             continue
-
-
-        num_islands_container = number_of_islands(camera, mask)
+        num_islands, island_labels = number_of_islands(camera, mask)
+        island_dict = {'num_islands': num_islands, 
+                       'island_labels': island_labels}
         leakage_container = leakage(camera, dl1.image[0], mask)
+        
 
         pointing_azimuth[telescope_id] = event.mc.tel[telescope_id].azimuth_raw * u.rad
         pointing_altitude[telescope_id] = event.mc.tel[telescope_id].altitude_raw * u.rad
@@ -126,7 +128,7 @@ def process_event(event, config):
 
         d.update(hillas_container.as_dict())
         d.update(leakage_container.as_dict())
-        d.update(num_islands_container.as_dict())
+        d.update(island_dict)
 
         features[telescope_id] = ({k: strip_unit(v) for k, v in d.items()})
 

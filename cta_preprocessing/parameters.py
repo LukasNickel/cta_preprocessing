@@ -10,6 +10,7 @@ class PREPConfig(object):
         'n_events',
         'n_jobs',
         'reco_algorithm',
+        'cleaning_method',
         'overwrite',
         'chunksize',
         'silent',
