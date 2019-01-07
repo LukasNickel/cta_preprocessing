@@ -28,14 +28,20 @@ def main(input_folder, output_folder, config_file):
     output_path = Path(output_folder)
 
     input_files = sorted(input_path.glob(config.input_pattern))
-    output_files = [output_path.joinpath(output_file_for_input_file(x))
-                    for x in input_files]
+#    output_files = [output_path.joinpath(output_file_for_input_file(x))
+#                    for x in input_files]
+
+    print('Given Files: ', input_files, '\n')
 
     if not config.overwrite:
         existing_output = [x.name for x in Path(output_folder).glob('*')]
-        print('existing:', existing_output)
+        print('existing:', existing_output, '\n')
+        print([output_file_for_input_file(x).name for x in input_files])
         input_files = [x for x in input_files
-                       if output_file_for_input_file(x) not in existing_output]
+                       if output_file_for_input_file(x).name not in existing_output]
+        print('')
+
+    print('processing: ', input_files, '\n')
 
     if config.n_jobs > 1:
         chunksize = config.chunksize
@@ -72,7 +78,8 @@ def main(input_folder, output_folder, config_file):
                     verify_file(output_file)
 
     else:
-        for input_file, output_file in tqdm(zip(input_files, output_files)):
+        for input_file in tqdm(input_files):
+            output_file = output_path.joinpath(output_file_for_input_file(input_file))
             print(f'processing file {input_file}, writing to {output_file}')
 
             results = process_file(input_file,
