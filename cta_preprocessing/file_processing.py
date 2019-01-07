@@ -91,7 +91,7 @@ def process_file(input_file,
                                inplace=True
                                )
 
-    run_information = read_simtel_mc_information(input_file) ### TODO: adapt to real data
+    run_information = read_simtel_mc_information_eventio(input_file) ### TODO: adapt to real data TODO: adapt to eventio
     df_runs = pd.DataFrame([run_information])
     if not df_runs.empty:
         df_runs.set_index('run_id',
@@ -156,6 +156,38 @@ def read_simtel_mc_information(simtel_file):
         }
 
         return d
+
+
+def read_simtel_mc_information_eventio(simtel_file):
+    with eventio.SimTelFile(simtel_file.as_posix()) as f:
+        # do some weird hessio fuckup
+        #eventstream = f.move_to_next_event()
+        #_ = next(eventstream)
+    #with eventio.SimTelFile(simtel_file.as_posix()) as f:   #crashing for multiple files right now
+        print(len(f.telescope_descriptions))
+        print('')
+        print(f.telescope_descriptions[0])
+        print('')
+        print(f.mc_run_headers[0])   # ??????
+        header = f.mc_run_headers[0]   # ??????
+        d = {
+            'mc_spectral_index': header['spectral_index'],
+            'mc_num_reuse': header['num_use'],
+            'mc_num_showers': header['num_showers'],
+            'mc_max_energy': header['E_range'][1],
+            'mc_min_energy': header['E_range'][0],
+            'mc_max_scatter_range': header['core_range'][1],  # range_X is always 0 in simtel files
+            'mc_max_viewcone_radius': header['viewcone'][1],
+            'mc_min_viewcone_radius': header['viewcone'][0],
+            'run_id': header['shower_prog_id'],
+            'mc_max_altitude': header['alt_range'][1],
+            'mc_max_azimuth': header['az_range'][1],
+            'mc_min_altitude': header['alt_range'][0],
+            'mc_min_azimuth': header['az_range'][0],
+        }
+
+        return d
+
 
 
 def write_output(runs, array_events, telescope_events, output_file):
