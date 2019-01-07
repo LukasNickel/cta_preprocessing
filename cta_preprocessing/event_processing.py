@@ -1,4 +1,4 @@
-from ctapipe.image.hillas import hillas_parameters_5
+from ctapipe.image.hillas import hillas_parameters
 from ctapipe.image.hillas import HillasParameterizationError
 from ctapipe.image import leakage
 from ctapipe.image.cleaning import tailcuts_clean
@@ -91,7 +91,7 @@ def process_event(event, config):
         try:
             cleaned = dl1.image[0].copy()
             cleaned[~mask] = 0
-            hillas_container = hillas_parameters_5(
+            hillas_container = hillas_parameters(
                 camera,
                 cleaned,
             )
