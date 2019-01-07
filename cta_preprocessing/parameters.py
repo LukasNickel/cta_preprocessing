@@ -21,6 +21,8 @@ class PREPConfig(object):
         'min_num_islands',
         'min_width',
         'min_length',
+        'integrator',
+        'min_number_of_valid_triggered_cameras',
     )
 
     def __init__(self, config_file):
