@@ -5,9 +5,9 @@ from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.io.lsteventsource import LSTEventSource
 from ctapipe.calib import CameraCalibrator
 from ctapipe.reco.HillasReconstructor import TooFewTelescopesException
+from ctapipe.io import SimTelEventSource
 import pandas as pd
 import fact.io
-import pyhessio   ## replace with fact/eventio ?
 import eventio
 from tqdm import tqdm
 from pathlib import Path
@@ -24,7 +24,7 @@ def process_data(input_file,
     )
     calibrator = CameraCalibrator(
         eventsource=event_source,
-        r1_product='NullR1Calibrator',  ## needs to be replaced
+        r1_product='NullR1Calibrator',  ## needs to be replaced?
         extractor_product=config.integrator,
     )
     
@@ -38,17 +38,21 @@ def process_data(input_file,
 
 def process_file(input_file,
                  config,
-                 return_input_file=False):
+                 return_input_file=False,
+                 product='SimTelEventSource'):
 
     event_source = EventSourceFactory.produce(
         input_url=input_file.as_posix(),
         max_events=config.n_events if config.n_events > 1 else None,
-        product='HESSIOEventSource',
+        product=product,
     )
+
+    #event_source.allowed_tels = config.allowed_telescope_ids # if we only want one telescope later
+
     calibrator = CameraCalibrator(
         eventsource=event_source,
         r1_product='HESSIOR1Calibrator',
-        extractor_product=config.integrator,   ## might want to add this to config?
+        extractor_product=config.integrator,
     )
 
     telescope_event_information = []
@@ -62,7 +66,7 @@ def process_file(input_file,
             image_features, reconstruction, _ = process_event(event,
                                                               config
                                                               )
-            event_features = event_information(event,   ## probably problematic for real data
+            event_features = event_information(event,  
                                                image_features,
                                                reconstruction,
                                                config
@@ -91,7 +95,7 @@ def process_file(input_file,
                                inplace=True
                                )
 
-    run_information = read_simtel_mc_information_eventio(input_file) ### TODO: adapt to real data TODO: adapt to eventio
+    run_information = read_simtel_mc_information(input_file) ### TODO: adapt to real data
     df_runs = pd.DataFrame([run_information])
     if not df_runs.empty:
         df_runs.set_index('run_id',
@@ -134,42 +138,8 @@ def verify_file(input_file_path):
 
 
 def read_simtel_mc_information(simtel_file):
-    with pyhessio.open_hessio(simtel_file.as_posix()) as f:
-        # do some weird hessio fuckup
-        eventstream = f.move_to_next_event()
-        _ = next(eventstream)
-    #with eventio.SimTelFile(simtel_file.as_posix()) as f:   #crashing for multiple files right now
-        d = {
-            'mc_spectral_index': f.get_spectral_index(),
-            'mc_num_reuse': f.get_mc_num_use(),
-            'mc_num_showers': f.get_mc_num_showers(),
-            'mc_max_energy': f.get_mc_E_range_Max(),
-            'mc_min_energy': f.get_mc_E_range_Min(),
-            'mc_max_scatter_range': f.get_mc_core_range_Y(),  # range_X is always 0 in simtel files
-            'mc_max_viewcone_radius': f.get_mc_viewcone_Max(),
-            'mc_min_viewcone_radius': f.get_mc_viewcone_Min(),
-            'run_id': f.get_run_number(),
-            'mc_max_altitude': f.get_mc_alt_range_Max(),
-            'mc_max_azimuth': f.get_mc_az_range_Max(),
-            'mc_min_altitude': f.get_mc_alt_range_Min(),
-            'mc_min_azimuth': f.get_mc_az_range_Min(),
-        }
-
-        return d
-
-
-def read_simtel_mc_information_eventio(simtel_file):
     with eventio.SimTelFile(simtel_file.as_posix()) as f:
-        # do some weird hessio fuckup
-        #eventstream = f.move_to_next_event()
-        #_ = next(eventstream)
-    #with eventio.SimTelFile(simtel_file.as_posix()) as f:   #crashing for multiple files right now
-        print(len(f.telescope_descriptions))
-        print('')
-        print(f.telescope_descriptions[0])
-        print('')
-        print(f.mc_run_headers[0])   # ??????
-        header = f.mc_run_headers[0]   # ??????
+        header = f.mc_run_headers[-1]   # these should all be the same, this is whats suggested by MaxNoe
         d = {
             'mc_spectral_index': header['spectral_index'],
             'mc_num_reuse': header['num_use'],
@@ -179,7 +149,7 @@ def read_simtel_mc_information_eventio(simtel_file):
             'mc_max_scatter_range': header['core_range'][1],  # range_X is always 0 in simtel files
             'mc_max_viewcone_radius': header['viewcone'][1],
             'mc_min_viewcone_radius': header['viewcone'][0],
-            'run_id': header['shower_prog_id'],
+            'run_id': f.header['run'],
             'mc_max_altitude': header['alt_range'][1],
             'mc_max_azimuth': header['az_range'][1],
             'mc_min_altitude': header['alt_range'][0],
@@ -187,7 +157,6 @@ def read_simtel_mc_information_eventio(simtel_file):
         }
 
         return d
-
 
 
 def write_output(runs, array_events, telescope_events, output_file):
