@@ -7,6 +7,7 @@ class PREPConfig(object):
         'names_to_id',
         'types_to_id',
         'allowed_cameras',
+        'allowed_telescope_ids', 
         'n_events',
         'n_jobs',
         'reco_algorithm',
