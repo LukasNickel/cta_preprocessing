@@ -98,6 +98,7 @@ def process_event(event, config):
             params[telescope_id] = hillas_container
         except HillasParameterizationError:
             continue
+        # Add more Features here (look what ctapipe can do, timing?)
         num_islands, island_labels = number_of_islands(camera, mask)
         island_dict = {'num_islands': num_islands, 
                        'island_labels': island_labels}
