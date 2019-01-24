@@ -28,9 +28,6 @@ def main(input_folder, output_folder, config_file):
     output_path = Path(output_folder)
 
     input_files = sorted(input_path.glob(config.input_pattern))
-#    output_files = [output_path.joinpath(output_file_for_input_file(x))
-#                    for x in input_files]
-
     print('Given Files: ', input_files, '\n')
 
     if not config.overwrite:
@@ -96,6 +93,7 @@ def main(input_folder, output_folder, config_file):
 
             write_output(runs, array_events, telescope_events, output_file)
             verify_file(output_file)
+            print('')
 
 
 if __name__ == '__main__':
