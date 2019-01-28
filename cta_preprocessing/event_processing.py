@@ -4,6 +4,7 @@ from ctapipe.image import leakage
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.cleaning import fact_image_cleaning
 from ctapipe.image.cleaning import number_of_islands
+from ctapipe.image.timing_parameters import timing_parameters
 from ctapipe.reco import HillasReconstructor
 from ctapipe.reco import hillas_intersection as HillasIntersection  # ??
 
@@ -103,6 +104,8 @@ def process_event(event, config):
         island_dict = {'num_islands': num_islands, 
                        'island_labels': island_labels}
         leakage_container = leakage(camera, dl1.image[0], mask)
+        timing_container = timing_parameters(camera, dl1.image[0],
+                                             dl1.peakpos[0], hillas_container)
         
 
         pointing_azimuth[telescope_id] = event.mc.tel[telescope_id].azimuth_raw * u.rad
@@ -130,6 +133,7 @@ def process_event(event, config):
         d.update(hillas_container.as_dict())
         d.update(leakage_container.as_dict())
         d.update(island_dict)
+        d.update(timing_container.as_dict())
 
         features[telescope_id] = ({k: strip_unit(v) for k, v in d.items()})
 
