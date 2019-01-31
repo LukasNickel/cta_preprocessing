@@ -1,30 +1,25 @@
 # All needed entries with default (working) values for the script
+# This do not necessarily resemble good values physics wise
 
 input_pattern: "*.simtel.gz"
 output_suffix: ".hdf5"
 
+# use this to chosse specific telescopes by id
+#allowed_telescope_ids: 
+#  - 1
+
 overwrite: False
 
+
+# use this to choose specific telescope types
 allowed_cameras: 
   - LSTCam
   - NectarCam
   - DigiCam
 
-cleaning_level:
-  LSTCam: 
-    - 3.5
-    - 7.5
-    - 2
-  NectarCam: 
-    - 3
-    - 5.5
-    - 2
-  DigiCam:
-    - 2
-    - 4.5
-    - 2
-
 reco_algorithm: planes
+integrator : NeighbourPeakIntegrator
+cleaning_method: tailcuts_clean
 
 names_to_id:
  LSTCam: 1
@@ -47,3 +42,25 @@ chunksize: 50
 silent: False
 
 verbose: 50
+
+cleaning_level:   ## how do i want to handle different algorrithms needing different paramteers?
+  LSTCam:
+    - 3.5
+    - 7.5
+    - 2
+  NectarCam:
+    - 3
+    - 5.5
+    - 2
+  DigiCam:
+    - 2
+    - 4.5
+    - 2
+
+min_num_islands: 8
+
+min_width: 30
+
+min_length: 70
+
+min_number_of_valid_triggered_cameras: 2
