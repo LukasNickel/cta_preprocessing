@@ -83,7 +83,7 @@ def process_event(event, config):
             )
 
         elif cleaning_method == 'fact_image_cleaning':
-            mask = tailcuts_clean(
+            mask = fact_image_cleaning(
                 camera,
                 dl1.image[0],
                 *config.cleaning_level_fact[camera.cam_id]
@@ -99,6 +99,7 @@ def process_event(event, config):
             params[telescope_id] = hillas_container
         except HillasParameterizationError:
             continue
+        # probably wise to add try...except blocks here as well
         # Add more Features here (look what ctapipe can do, timing?)
         num_islands, island_labels = number_of_islands(camera, mask)
         island_dict = {'num_islands': num_islands, 
