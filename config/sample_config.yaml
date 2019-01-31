@@ -4,10 +4,6 @@
 input_pattern: "*.simtel.gz"
 output_suffix: ".hdf5"
 
-# use this to chosse specific telescopes by id
-#allowed_telescope_ids: 
-#  - 1
-
 overwrite: False
 
 
